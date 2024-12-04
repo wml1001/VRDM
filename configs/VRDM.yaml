@@ -1,0 +1,102 @@
+# Latent Brownian Bridge Diffusion Model Template(Latent Space)
+runner: "VRDMRunner"
+training:
+  n_epochs: 10
+  n_steps: 200000
+  save_interval: 2
+  sample_interval: 2
+  validation_interval: 2
+  accumulate_grad_batches: 4
+
+testing:
+  clip_denoised: False
+  sample_num: 1
+
+data:
+  dataset_name: 'dataset_name'
+  dataset_type: 'custom_aligned'
+  dataset_config:
+    dataset_path: '/home/back_door/data7000/data'
+    image_size: 64
+    channels: 1
+    to_normal: True
+    flip: False
+  train:
+    batch_size: 1
+    shuffle: True
+  val:
+    batch_size: 1
+    shuffle: True
+  test:
+    batch_size: 1
+    shuffle: False
+
+model:
+  model_type: "VRDM" # specify a module
+  latent_before_quant_conv: False
+  normalize_latent: False
+  only_load_latent_mean_std: False
+  # model_load_path:  # model checkpoint path
+  # optim_sche_load_path:  # optimizer scheduler checkpoint path
+
+  EMA:
+    use_ema: True
+    ema_decay: 0.995
+    update_ema_interval: 8 # step
+    start_ema_step: 30000
+
+  CondStageParams:
+    n_stages: 2
+    in_channels: 1
+    out_channels: 1
+
+  BB:
+    optimizer:
+      weight_decay: 0.000
+      optimizer: 'Adam'
+      lr: 1.e-4
+      beta1: 0.9
+
+    lr_scheduler:
+      factor: 0.5
+      patience: 3000
+      threshold: 0.0001
+      cooldown: 3000
+      min_lr: 5.e-7
+
+    params:
+      mt_type: 'linear' # options {'linear', 'sin'}
+      objective: 'grad' # options {'grad', 'noise', 'ysubx'}
+      loss_type: 'l1' # options {'l1', 'l2'}
+
+      skip_sample: True
+      sample_type: 'linear' # options {"linear", "sin"}
+      sample_step: 200
+
+      num_timesteps: 1000 # timesteps
+      eta: 1.0 # DDIM reverse process eta
+      max_var: 1.0 # maximum variance
+
+      UNetParams:
+        image_size: 64
+        in_channels: 1
+        model_channels: 128
+        out_channels: 1
+        num_res_blocks: 2
+        attention_resolutions: !!python/tuple
+          - 32
+          - 16
+          - 8
+        channel_mult: !!python/tuple
+          - 1
+          - 4
+          - 8
+        conv_resample: True
+        dims: 2
+        num_heads: 8
+        num_head_channels: 64
+        use_scale_shift_norm: True
+        resblock_updown: True
+        use_spatial_transformer: False
+        context_dim:
+        condition_key: "nocond" # options {"SpatialRescaler", "first_stage", "nocond"}
